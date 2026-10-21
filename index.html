@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ek Kart Defteri</title>
+
+<!-- iPhone'da ana ekrana eklenince tam ekran uygulama gibi açılsın diye -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ek Kart">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#EEF2F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101614" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+
+<style>
+/* ===== RENKLER: açık tema ===== */
+:root {
+  --bg: #EEF2F0;
+  --surface: #FFFFFF;
+  --ink: #15211C;
+  --muted: #5C6B65;
+  --line: #D5DED9;
+  --accent: #1E7A4C;
+  --accent-ink: #FFFFFF;
+  --danger: #B3322B;
+  --danger-soft: #F7E1DF;
+  /* bölme renkleri, sırayla dağıtılıyor */
+  --c1: #1E7A4C; --c2: #2F6FB3; --c3: #C27A12; --c4: #8A4FB8;
+  --c5: #C2415F; --c6: #2A8F8F; --c7: #6B7A2A; --c8: #7A6A5C;
+  --f-body: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --f-num: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+/* ===== RENKLER: koyu tema (telefon karanlık moddaysa) ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101614; --surface: #18201D; --ink: #E6EEEA; --muted: #93A39C; --line: #2A3531;
+    --accent: #4CC487; --accent-ink: #0B1611; --danger: #F07A72; --danger-soft: #3A1E1C;
+    --c1: #4CC487; --c2: #6EA8E8; --c3: #E5A445; --c4: #B88BE0;
+    --c5: #E87896; --c6: #5CC4C4; --c7: #A9BA5C; --c8: #B8A797;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Çentik ve alt çubuk için boşluk bırakan ana kutu */
+.wrap {
+  max-width: 520px; margin: 0 auto;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 40px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 22px;
+}
+h1, h2 { margin: 0; }
+h2 { font-size: 17px; font-weight: 650; }
+.label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* ----- Üst kısım: ay ve toplam ----- */
+.monthbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.monthbar h1 { font-size: 20px; font-weight: 700; }
+.navbtn {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--surface); font-size: 18px;
+}
+.navbtn:disabled { opacity: .35; }
+.total { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.total .amt { font-family: var(--f-num); font-size: clamp(32px, 10vw, 44px); font-weight: 600; letter-spacing: -.02em; }
+.total .meta { color: var(--muted); font-size: 13px; }
+
+/* ----- Harcama ekleme formu ----- */
+.slip {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px; display: flex; flex-direction: column; gap: 14px;
+}
+.amtrow { display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--ink); padding-bottom: 6px; }
+.amtrow span { font-family: var(--f-num); font-size: 26px; color: var(--muted); }
+.amtrow input {
+  flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink);
+  font-family: var(--f-num); font-size: 28px; font-weight: 600; padding: 4px 0; outline: none;
+}
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+.field input {
+  width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg); color: var(--ink); font: inherit; font-size: 16px; padding: 10px 12px;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  border: 1px solid var(--line); background: var(--bg); border-radius: 999px;
+  padding: 7px 12px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px;
+}
+.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; display: inline-block; }
+.save {
+  border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink);
+  font-weight: 600; font-size: 16px; padding: 14px;
+}
+.msg { font-size: 13px; min-height: 1em; color: var(--muted); }
+.msg.err { color: var(--danger); }
+
+/* ----- Bölme çubukları ----- */
+.section { display: flex; flex-direction: column; gap: 12px; }
+.bar { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; }
+.bar .name { font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.bar .val { font-family: var(--f-num); font-size: 14px; text-align: right; }
+.bar .pct { color: var(--muted); font-size: 12px; margin-left: 4px; }
+.track { grid-column: 1 / -1; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.fill { height: 100%; border-radius: 4px; }
+
+/* ----- Harcama listesi ----- */
+.dayhead { display: flex; justify-content: space-between; padding: 6px 2px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.dayhead b { font-weight: 600; }
+.dayhead span { font-family: var(--f-num); color: var(--muted); }
+.row {
+  display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center;
+  width: 100%; padding: 11px 2px; text-align: left;
+  background: none; border: 0; border-bottom: 1px dashed var(--line);
+}
+.row .place { font-weight: 500; overflow-wrap: anywhere; }
+.row .sub { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.row .a { font-family: var(--f-num); font-weight: 600; }
+.confirm { display: flex; gap: 8px; justify-content: flex-end; padding: 8px 2px 12px; border-bottom: 1px dashed var(--line); }
+.confirm button { border-radius: 8px; padding: 7px 12px; font-size: 14px; border: 1px solid var(--line); background: var(--surface); }
+.confirm .del { background: var(--danger-soft); color: var(--danger); border-color: transparent; font-weight: 600; }
+.empty { border: 1px dashed var(--line); border-radius: 14px; padding: 18px 16px; color: var(--muted); font-size: 14px; }
+.empty b { color: var(--ink); display: block; margin-bottom: 4px; }
+
+/* ----- Ayarlar (bölmeler + yedek) ----- */
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+summary { padding: 14px 16px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--muted); }
+details[open] summary::after { content: "–"; }
+.setbody { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.catitem { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.catitem .n { flex: 1; }
+.catitem button { border: 0; background: none; color: var(--danger); font-size: 13px; }
+.addcat { display: flex; gap: 8px; }
+.addcat input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font-size: 16px; padding: 9px 12px; }
+.btn { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 10px 14px; font-weight: 500; text-align: center; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.warn { font-size: 13px; color: var(--danger); margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ÜST: ay seçici ve aylık toplam -->
+  <header>
+    <div class="monthbar">
+      <button class="navbtn" id="prevM" aria-label="Önceki ay">‹</button>
+      <h1 id="monthTitle"></h1>
+      <button class="navbtn" id="nextM" aria-label="Sonraki ay">›</button>
+    </div>
+    <div class="total">
+      <span class="amt" id="totalAmt">₺0,00</span>
+      <span class="meta" id="totalMeta"></span>
+    </div>
+  </header>
+
+  <!-- FORM: yeni harcama -->
+  <form class="slip" id="addForm" autocomplete="off">
+    <span class="label">Yeni harcama</span>
+    <label class="amtrow">
+      <span>₺</span>
+      <input id="fAmount" inputmode="decimal" placeholder="0,00" aria-label="Tutar">
+    </label>
+    <div class="fields">
+      <div class="field full">
+        <label class="label" for="fPlace">Nereye</label>
+        <input id="fPlace" placeholder="Örn. Migros, Shell, kantin" maxlength="80">
+      </div>
+      <div class="field">
+        <label class="label" for="fDate">Tarih</label>
+        <input id="fDate" type="date">
+      </div>
+      <div class="field">
+        <label class="label" for="fNote">Not</label>
+        <input id="fNote" placeholder="İsteğe bağlı" maxlength="120">
+      </div>
+    </div>
+    <div class="field">
+      <span class="label">Bölme</span>
+      <div class="chips" id="catChips"></div>
+    </div>
+    <button class="save" type="submit">Kaydet</button>
+    <div class="msg" id="formMsg"></div>
+  </form>
+
+  <!-- BÖLMELERE GÖRE DAĞILIM -->
+  <section class="section">
+    <h2>Bölmelere göre</h2>
+    <div id="bars"></div>
+  </section>
+
+  <!-- HARCAMA LİSTESİ -->
+  <section class="section">
+    <h2>Harcamalar</h2>
+    <div id="list"></div>
+  </section>
+
+  <!-- AYARLAR -->
+  <details>
+    <summary>Bölmeleri düzenle</summary>
+    <div class="setbody">
+      <div id="catList"></div>
+      <div class="addcat">
+        <input id="newCat" placeholder="Yeni bölme adı" maxlength="30">
+        <button type="button" class="btn" id="addCatBtn">Ekle</button>
+      </div>
+      <p class="hint">Bir bölmeyi kaldırınca eski harcamalar silinmez, kendi adıyla listede kalır.</p>
+    </div>
+  </details>
+
+  <details id="backupBox">
+    <summary>Yedekle ve geri yükle</summary>
+    <div class="setbody">
+      <p class="hint">Kayıtlar sadece bu telefonda duruyor. Ayda bir yedek indirip Dosyalar'a ya da iCloud'a kaydet. Telefon değişirse yedeği "Yedeği geri yükle" ile geri alırsın.</p>
+      <p class="warn" id="backupWarn" hidden></p>
+      <div class="btns">
+        <button type="button" class="btn" id="exportJson">Yedek indir</button>
+        <button type="button" class="btn" id="exportCsv">Excel için CSV indir</button>
+        <label class="btn" for="importFile">Yedeği geri yükle</label>
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
+      </div>
+      <div class="msg" id="backupMsg"></div>
+    </div>
+  </details>
+
+</div>
+
+<script>
+/* =========================================================
+   EK KART DEFTERİ
+   Bütün veri telefonun tarayıcı hafızasında (localStorage)
+   "ekKartDefteri" anahtarı altında JSON olarak tutuluyor.
+   ========================================================= */
+
+var KAYIT_ANAHTARI = "ekKartDefteri";
+var VARSAYILAN_BOLMELER = ["Yemek", "Market", "Kafe", "Yakıt", "Ulaşım", "Okul", "Eğlence", "Diğer"];
+var RENKLER = ["--c1", "--c2", "--c3", "--c4", "--c5", "--c6", "--c7", "--c8"];
+var AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+var GUNLER = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+
+/* Uygulamanın bütün durumu bu nesnede */
+var veri = { harcamalar: [], bolmeler: VARSAYILAN_BOLMELER.slice(), sonYedek: null };
+var ekran = { ay: ayAnahtari(new Date()), seciliBolme: null, silinecekId: null };
+
+var para = new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" });
+function $(id) { return document.getElementById(id); }
+
+/* ---------- Kaydet / yükle ---------- */
+function yukle() {
+  try {
+    var ham = localStorage.getItem(KAYIT_ANAHTARI);
+    if (ham) {
+      var okunan = JSON.parse(ham);
+      if (Array.isArray(okunan.harcamalar)) veri.harcamalar = okunan.harcamalar;
+      if (Array.isArray(okunan.bolmeler) && okunan.bolmeler.length) veri.bolmeler = okunan.bolmeler;
+      veri.sonYedek = okunan.sonYedek || null;
+    }
+  } catch (e) {
+    $("formMsg").textContent = "Kayıtlar okunamadı.";
+    $("formMsg").className = "msg err";
+  }
+}
+function kaydet() {
+  try {
+    localStorage.setItem(KAYIT_ANAHTARI, JSON.stringify(veri));
+    return true;
+  } catch (e) {
+    $("formMsg").textContent = "Kaydedilemedi. Safari'de Gizli Mod açıksa kapat.";
+    $("formMsg").className = "msg err";
+    return false;
+  }
+}
+
+/* ---------- Küçük yardımcılar ---------- */
+function iki(n) { return (n < 10 ? "0" : "") + n; }
+function bugun() { var d = new Date(); return d.getFullYear() + "-" + iki(d.getMonth() + 1) + "-" + iki(d.getDate()); }
+function ayAnahtari(d) { return d.getFullYear() + "-" + iki(d.getMonth() + 1); }
+function ayKaydir(anahtar, kac) {
+  var p = anahtar.split("-");
+  return ayAnahtari(new Date(Number(p[0]), Number(p[1]) - 1 + kac, 1));
+}
+/* "1.250,50" ya da "250.5" gibi yazılan tutarı sayıya çevirir */
+function tutarOku(yazi) {
+  var s = String(yazi || "").replace(/[₺\s]/g, "");
+  if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", ".");
+  var n = Number(s);
+  return isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : NaN;
+}
+function renk(bolme) {
+  var i = veri.bolmeler.indexOf(bolme);
+  if (i < 0) i = bolme.length; // listede olmayan eski bölmelere de bir renk ver
+  return "var(" + RENKLER[i % RENKLER.length] + ")";
+}
+function yeniId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function olustur(etiket, sinif, yazi) {
+  var e = document.createElement(etiket);
+  if (sinif) e.className = sinif;
+  if (yazi != null) e.textContent = yazi;
+  return e;
+}
+function nokta(bolme) { var d = olustur("span", "dot"); d.style.background = renk(bolme); return d; }
+
+/* ---------- Ekranı çiz ---------- */
+function buAyinHarcamalari() {
+  return veri.harcamalar.filter(function (h) { return h.tarih.slice(0, 7) === ekran.ay; });
+}
+
+function ciz() {
+  var liste = buAyinHarcamalari();
+  var toplam = liste.reduce(function (t, h) { return t + h.tutar; }, 0);
+
+  // Üst kısım
+  var p = ekran.ay.split("-");
+  $("monthTitle").textContent = AYLAR[Number(p[1]) - 1] + " " + p[0];
+  $("nextM").disabled = ekran.ay >= ayAnahtari(new Date());
+  $("totalAmt").textContent = para.format(toplam);
+  $("totalMeta").textContent = liste.length ? liste.length + " harcama" : "bu ay harcama yok";
+
+  cizBolmeSecici();
+  cizCubuklar(liste, toplam);
+  cizListe(liste);
+  cizBolmeAyarlari();
+  yedekUyarisi();
+}
+
+function cizBolmeSecici() {
+  var kutu = $("catChips");
+  kutu.textContent = "";
+  if (veri.bolmeler.indexOf(ekran.seciliBolme) < 0) ekran.seciliBolme = veri.bolmeler[0];
+  veri.bolmeler.forEach(function (b) {
+    var dugme = olustur("button", "chip" + (b === ekran.seciliBolme ? " on" : ""));
+    dugme.type = "button";
+    dugme.appendChild(nokta(b));
+    dugme.appendChild(document.createTextNode(b));
+    dugme.onclick = function () { ekran.seciliBolme = b; cizBolmeSecici(); };
+    kutu.appendChild(dugme);
+  });
+}
+
+function cizCubuklar(liste, toplam) {
+  var kutu = $("bars");
+  kutu.textContent = "";
+  var toplamlar = {};
+  liste.forEach(function (h) { toplamlar[h.bolme] = (toplamlar[h.bolme] || 0) + h.tutar; });
+  var sirali = Object.keys(toplamlar).sort(function (a, b) { return toplamlar[b] - toplamlar[a]; });
+
+  if (!sirali.length) {
+    kutu.appendChild(olustur("div", "empty", "Bu ay kayıt girince harcamaların bölmelere göre dağılımı burada çıkar."));
+    return;
+  }
+  var enBuyuk = toplamlar[sirali[0]];
+  sirali.forEach(function (b) {
+    var satir = olustur("div", "bar");
+    var ad = olustur("div", "name");
+    ad.appendChild(nokta(b));
+    ad.appendChild(document.createTextNode(b));
+    var deger = olustur("div", "val", para.format(toplamlar[b]));
+    deger.appendChild(olustur("span", "pct", "%" + Math.round(toplamlar[b] / toplam * 100)));
+    var yol = olustur("div", "track");
+    var dolu = olustur("div", "fill");
+    dolu.style.width = (toplamlar[b] / enBuyuk * 100) + "%";
+    dolu.style.background = renk(b);
+    yol.appendChild(dolu);
+    satir.appendChild(ad); satir.appendChild(deger); satir.appendChild(yol);
+    kutu.appendChild(satir);
+  });
+}
+
+function cizListe(liste) {
+  var kutu = $("list");
+  kutu.textContent = "";
+  if (!liste.length) {
+    var bos = olustur("div", "empty");
+    bos.appendChild(olustur("b", null, "Bu ay henüz kayıt yok"));
+    bos.appendChild(document.createTextNode("Ek kartla ödeme yapınca yukarıya tutarı ve yeri yaz, Kaydet'e bas."));
+    kutu.appendChild(bos);
+    return;
+  }
+  // Yeniden eskiye sırala
+  var sirali = liste.slice().sort(function (a, b) {
+    if (a.tarih !== b.tarih) return a.tarih < b.tarih ? 1 : -1;
+    return b.eklenme - a.eklenme;
+  });
+
+  var oncekiGun = null;
+  sirali.forEach(function (h) {
+    // Yeni bir güne geçtiysek gün başlığı ekle
+    if (h.tarih !== oncekiGun) {
+      oncekiGun = h.tarih;
+      var gunToplami = sirali.filter(function (x) { return x.tarih === h.tarih; })
+                             .reduce(function (t, x) { return t + x.tutar; }, 0);
+      var p = h.tarih.split("-");
+      var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+      var yazi = Number(p[2]) + " " + AYLAR[d.getMonth()] + " " + GUNLER[d.getDay()];
+      if (h.tarih === bugun()) yazi = "Bugün · " + yazi;
+      var baslik = olustur("div", "dayhead");
+      baslik.appendChild(olustur("b", null, yazi));
+      baslik.appendChild(olustur("span", null, para.format(gunToplami)));
+      kutu.appendChild(baslik);
+    }
+
+    // Harcama satırı (dokununca silme onayı açılır)
+    var satir = olustur("button", "row");
+    satir.type = "button";
+    var ne = olustur("div");
+    ne.appendChild(olustur("div", "place", h.yer || h.bolme));
+    var alt = h.bolme + (h.not ? " · " + h.not : "");
+    ne.appendChild(olustur("div", "sub", alt));
+    satir.appendChild(nokta(h.bolme));
+    satir.appendChild(ne);
+    satir.appendChild(olustur("span", "a", para.format(h.tutar)));
+    satir.onclick = function () {
+      ekran.silinecekId = ekran.silinecekId === h.id ? null : h.id;
+      ciz();
+    };
+    kutu.appendChild(satir);
+
+    if (ekran.silinecekId === h.id) {
+      var onay = olustur("div", "confirm");
+      var vazgec = olustur("button", null, "Vazgeç");
+      vazgec.onclick = function () { ekran.silinecekId = null; ciz(); };
+      var sil = olustur("button", "del", "Kaydı sil");
+      sil.onclick = function () {
+        veri.harcamalar = veri.harcamalar.filter(function (x) { return x.id !== h.id; });
+        ekran.silinecekId = null;
+        kaydet(); ciz();
+      };
+      onay.appendChild(vazgec); onay.appendChild(sil);
+      kutu.appendChild(onay);
+    }
+  });
+}
+
+function cizBolmeAyarlari() {
+  var kutu = $("catList");
+  kutu.textContent = "";
+  veri.bolmeler.forEach(function (b, i) {
+    var satir = olustur("div", "catitem");
+    satir.appendChild(nokta(b));
+    satir.appendChild(olustur("span", "n", b));
+    var kaldir = olustur("button", null, "Kaldır");
+    kaldir.type = "button";
+    kaldir.disabled = veri.bolmeler.length <= 1;
+    kaldir.onclick = function () { veri.bolmeler.splice(i, 1); kaydet(); ciz(); };
+    satir.appendChild(kaldir);
+    kutu.appendChild(satir);
+  });
+}
+
+/* 30 günden uzun süredir yedek alınmadıysa hatırlat */
+function yedekUyarisi() {
+  var uyari = $("backupWarn");
+  var gun = veri.sonYedek ? Math.floor((Date.now() - veri.sonYedek) / 86400000) : null;
+  if (veri.harcamalar.length >= 5 && (gun === null || gun >= 30)) {
+    uyari.textContent = gun === null ? "Henüz hiç yedek almadın." : "Son yedeğin " + gun + " gün önce.";
+    uyari.hidden = false;
+  } else {
+    uyari.hidden = true;
+  }
+}
+
+/* ---------- Dosya indirme ---------- */
+function dosyaIndir(ad, icerik, tur) {
+  var blob = new Blob([icerik], { type: tur });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = ad;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+
+/* ---------- Olaylar (düğmeler) ---------- */
+$("addForm").onsubmit = function (olay) {
+  olay.preventDefault();
+  var mesaj = $("formMsg");
+  var tutar = tutarOku($("fAmount").value);
+  if (isNaN(tutar)) {
+    mesaj.textContent = "Tutarı yaz, örneğin 250 ya da 1.250,50";
+    mesaj.className = "msg err";
+    return;
+  }
+  var tarih = $("fDate").value || bugun();
+  veri.harcamalar.push({
+    id: yeniId(),
+    tutar: tutar,
+    yer: $("fPlace").value.trim(),
+    tarih: tarih,
+    not: $("fNote").value.trim(),
+    bolme: ekran.seciliBolme,
+    eklenme: Date.now()
+  });
+  if (kaydet()) {
+    mesaj.textContent = para.format(tutar) + " kaydedildi";
+    mesaj.className = "msg";
+    $("fAmount").value = ""; $("fPlace").value = ""; $("fNote").value = "";
+    $("fAmount").blur();
+    ekran.ay = tarih.slice(0, 7);
+    ciz();
+  }
+};
+
+$("prevM").onclick = function () { ekran.ay = ayKaydir(ekran.ay, -1); ekran.silinecekId = null; ciz(); };
+$("nextM").onclick = function () { ekran.ay = ayKaydir(ekran.ay, 1); ekran.silinecekId = null; ciz(); };
+
+$("addCatBtn").onclick = function () {
+  var ad = $("newCat").value.trim();
+  $("newCat").value = "";
+  var varMi = veri.bolmeler.some(function (b) { return b.toLocaleLowerCase("tr") === ad.toLocaleLowerCase("tr"); });
+  if (!ad || varMi) return;
+  veri.bolmeler.push(ad);
+  kaydet(); ciz();
+};
+
+$("exportJson").onclick = function () {
+  veri.sonYedek = Date.now();
+  kaydet();
+  dosyaIndir("ek-kart-yedek-" + bugun() + ".json", JSON.stringify(veri, null, 2), "application/json");
+  $("backupMsg").textContent = veri.harcamalar.length + " kayıt yedeklendi. Dosyayı Dosyalar'a kaydetmeyi unutma.";
+  ciz();
+};
+
+$("exportCsv").onclick = function () {
+  // Türkçe Excel noktalı virgül ve virgüllü ondalık bekliyor
+  function hucre(s) { s = String(s || ""); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  var sirali = veri.harcamalar.slice().sort(function (a, b) { return a.tarih < b.tarih ? -1 : 1; });
+  var satirlar = sirali.map(function (h) {
+    return [h.tarih, hucre(h.yer), hucre(h.bolme), String(h.tutar).replace(".", ","), hucre(h.not)].join(";");
+  });
+  dosyaIndir("ek-kart-harcamalar-" + bugun() + ".csv",
+             "﻿Tarih;Yer;Bölme;Tutar (TL);Not\n" + satirlar.join("\n"), "text/csv");
+};
+
+$("importFile").onchange = function () {
+  var dosya = this.files[0];
+  var mesaj = $("backupMsg");
+  if (!dosya) return;
+  var okuyucu = new FileReader();
+  okuyucu.onload = function () {
+    try {
+      var gelen = JSON.parse(okuyucu.result);
+      if (!Array.isArray(gelen.harcamalar)) throw new Error();
+      // Aynı kayıt iki kez gelmesin diye id'ye göre birleştir
+      var mevcut = {};
+      veri.harcamalar.forEach(function (h) { mevcut[h.id] = true; });
+      var eklenen = 0;
+      gelen.harcamalar.forEach(function (h) {
+        if (h && h.id && !mevcut[h.id] && typeof h.tutar === "number") { veri.harcamalar.push(h); eklenen++; }
+      });
+      (gelen.bolmeler || []).forEach(function (b) { if (veri.bolmeler.indexOf(b) < 0) veri.bolmeler.push(b); });
+      kaydet(); ciz();
+      mesaj.textContent = eklenen + " kayıt geri yüklendi.";
+      mesaj.className = "msg";
+    } catch (e) {
+      mesaj.textContent = "Bu dosya bir Ek Kart yedeği değil.";
+      mesaj.className = "msg err";
+    }
+  };
+  okuyucu.readAsText(dosya);
+  this.value = "";
+};
+
+/* ---------- Başlangıç ---------- */
+yukle();
+$("fDate").value = bugun();
+ciz();
+
+// Tarayıcıdan kayıtları silmemesini iste (destekliyorsa)
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+
+// İnternetsiz de açılsın diye service worker'ı kaydet
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
