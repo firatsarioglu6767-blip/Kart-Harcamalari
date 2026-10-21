@@ -97,6 +97,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
   width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 10px;
   background: var(--bg); color: var(--ink); font: inherit; font-size: 16px; padding: 10px 12px;
 }
+/* iPhone'da tarih kutusu kendi genişliğini dayatıp taşıyordu, bunu kapatıyoruz */
+.field input[type="date"] {
+  -webkit-appearance: none; appearance: none;
+  display: block; height: 46px; text-align: left;
+}
+.field input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   border: 1px solid var(--line); background: var(--bg); border-radius: 999px;
@@ -184,11 +190,11 @@ details[open] summary::after { content: "–"; }
         <label class="label" for="fPlace">Nereye</label>
         <input id="fPlace" placeholder="Örn. Migros, Shell, kantin" maxlength="80">
       </div>
-      <div class="field">
+      <div class="field full">
         <label class="label" for="fDate">Tarih</label>
         <input id="fDate" type="date">
       </div>
-      <div class="field">
+      <div class="field full">
         <label class="label" for="fNote">Not</label>
         <input id="fNote" placeholder="İsteğe bağlı" maxlength="120">
       </div>
@@ -421,9 +427,11 @@ function cizListe(liste) {
     var satir = olustur("button", "row");
     satir.type = "button";
     var ne = olustur("div");
+    // Yer yazılmadıysa bölme adı başlık olur, altta tekrar yazmayız
     ne.appendChild(olustur("div", "place", h.yer || h.bolme));
-    var alt = h.bolme + (h.not ? " · " + h.not : "");
-    ne.appendChild(olustur("div", "sub", alt));
+    var alt = h.yer ? h.bolme : "";
+    if (h.not) alt += (alt ? " · " : "") + h.not;
+    if (alt) ne.appendChild(olustur("div", "sub", alt));
     satir.appendChild(nokta(h.bolme));
     satir.appendChild(ne);
     satir.appendChild(olustur("span", "a", para.format(h.tutar)));

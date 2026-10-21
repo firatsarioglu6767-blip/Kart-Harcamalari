@@ -1,6 +1,6 @@
 // İnternet yokken de uygulama açılsın diye dosyaları önbelleğe alıyor.
 // index.html'de bir şey değiştirip GitHub'a yüklersen SURUM'ü bir artır (v2, v3...).
-var SURUM = "ek-kart-v1";
+var SURUM = "ek-kart-v2";
 var DOSYALAR = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", function (e) {
